@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Car Price Predictor</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.1/dist/css/bootstrap-select.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/all.min.css">
+    <link rel="stylesheet" href="/static/style2.css">
+</head>
+<body>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h1>Welcome to Car Price Predictor</h1>
+                </div>
+                <div class="card-body">
+                    <div class="col-12 text-center">
+                        <h5>This app predicts the price of a car you want to sell. Try filling the details below:</h5>
+                    </div>
+                    <br>
+                    <form id="predictionForm" method="post">
+                        <div class="form-group text-center">
+                            <label><b>Select the company:</b></label>
+                            <select class="selectpicker form-control" id="company" name="company" required
+                                    data-live-search="true" title="Select company">
+                                {% for company in companies %}
+                                <option value="{{ company }}" {% if company == 'Select Company' %}selected disabled{% endif %}>
+                                    {{ company }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group text-center">
+                            <label><b>Select the model:</b></label>
+                            <select class="selectpicker form-control" id="car_models" name="car_models" required
+                                    data-live-search="true" title="Select model" disabled>
+                                <option value="">Select company first</option>
+                            </select>
+                        </div>
+                        <div class="form-group text-center">
+                            <label><b>Select Year of Purchase:</b></label>
+                            <select class="selectpicker form-control" id="year" name="year" required
+                                    title="Select year">
+                                {% for year in years %}
+                                <option value="{{ year }}">{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group text-center">
+                            <label><b>Select the Fuel Type:</b></label>
+                            <select class="selectpicker form-control" id="fuel_type" name="fuel_type" required
+                                    title="Select fuel type">
+                                {% for fuel in fuel_types %}
+                                <option value="{{ fuel }}">{{ fuel }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group text-center">
+                            <label><b>Enter the Number of Kilometres driven:</b></label>
+                            <input type="number" class="form-control" id="kilo_driven" name="kilo_driven"
+                                   placeholder="Enter kilometres driven" required>
+                        </div>
+                        <div class="form-group text-center">
+                            <button type="submit" class="btn btn-primary btn-block">Predict Price</button>
+                        </div>
+                    </form>
+                    <div class="row mt-3">
+                        <div class="col-12 text-center">
+                            <h4><span id="prediction"></span></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.1/dist/js/bootstrap-select.min.js"></script>
+
+<script>
+    // Create a JavaScript object from the template data
+    var companyModelsData = {{ company_models|tojson|safe }}
+
+    // Initialize when DOM is ready
+    $(document).ready(function() {
+        // Enable model dropdown when company is selected
+        $('#company').change(function() {
+            var company = $(this).val();
+            var $modelSelect = $('#car_models');
+            
+            $modelSelect.empty();
+            $modelSelect.prop('disabled', false);
+            
+            if (company && company !== 'Select Company' && companyModelsData[company]) {
+                
+                companyModelsData[company].forEach(function(model) {
+                    $modelSelect.append('<option value="' + model + '">' + model + '</option>');
+                });
+            } else {
+                $modelSelect.append('<option value="" disabled>Select company first</option>');
+                $modelSelect.prop('disabled', true);
+            }
+            
+            $modelSelect.selectpicker('refresh');
+        });
+
+        // Handle form submission
+        $('#predictionForm').submit(function(e) {
+            e.preventDefault();
+            
+            // Validate inputs
+            var kiloDriven = $('#kilo_driven').val();
+            if (!kiloDriven || isNaN(kiloDriven)) {
+                alert('Please enter a valid number for kilometres driven');
+                return;
+            }
+            
+            // Show loading message
+            $('#prediction').html('<i class="fas fa-spinner fa-spin"></i> Predicting price...');
+            
+            // Submit via AJAX
+            $.ajax({
+                type: 'POST',
+                url: '/predict',
+                data: $(this).serialize(),
+                success: function(response) {
+                    $('#prediction').html('Predicted Price: ₹' + response);
+                },
+                error: function() {
+                    $('#prediction').html('Error predicting price. Please try again.');
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>
